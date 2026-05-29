@@ -1,0 +1,5 @@
+numpy>=1.24.0
+requests>=2.31.0
+# Optional on Python 3.10–3.12 (binary wheels). On 3.13+ the solver uses a
+# gensim-data gzip fallback parsed with NumPy only.
+gensim>=4.3.0; python_version < "3.13"
