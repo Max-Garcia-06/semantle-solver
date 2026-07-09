@@ -229,16 +229,17 @@ def _cache_matches_api(matrix: np.ndarray, vocab: list[str]) -> bool:
                     continue
             return None
 
-        article_row = row_for("article")
-        cover_row = row_for("cover")
-        if article_row is None or cover_row is None:
-            return True
         client = SemantleClient()
         game = client.fetch_game(game_id_for_date(current_puzzle_date()))
+        secret = game.secret_word
+        article_row = row_for("article")
+        secret_row = row_for(secret)
+        if article_row is None or secret_row is None:
+            return True
         api_cosine = normalize_semantle_score(
-            client.submit_guess("article", game.secret_word).initial_similarity
+            client.submit_guess("article", secret).initial_similarity
         )
-        local = float(matrix[article_row] @ matrix[cover_row])
+        local = float(matrix[article_row] @ matrix[secret_row])
         return abs(local - api_cosine) < 0.01
     except Exception as exc:
         logger.debug("API parity check skipped: %s", exc)
@@ -292,9 +293,14 @@ def _load_via_binary_download() -> tuple[list[str], np.ndarray]:
             f"Corrupt embedding file removed ({gz_path}). Re-run to download again."
         ) from exc
 
+    if not CACHE_VECTORS.is_file() or not CACHE_VOCAB.is_file():
+        raise ModelDownloadError("parse finished but cache files are missing")
     loaded = _load_parsed_cache()
     if loaded is None:
-        raise ModelDownloadError("parse finished but cache files are missing")
+        raise ModelDownloadError(
+            "parse finished but cache could not be loaded "
+            "(check logs for parity or vocabulary errors)"
+        )
     return loaded
 
 
